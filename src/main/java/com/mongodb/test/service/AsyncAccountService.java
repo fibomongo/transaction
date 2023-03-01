@@ -262,9 +262,9 @@ public class AsyncAccountService {
                 throw new RuntimeException("Account " + _newBalance.getId() + " have not enough balance, skip transfer");
             } else {
                 if (clientSession != null) {
-                    collection.updateOne(clientSession, Filters.eq("_id", t.getToAccountId()), Updates.inc("balance", transferAmount));
+                    collection.updateOne(clientSession, Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", transferAmount));
                 } else {
-                    collection.updateOne(Filters.eq("_id", t.getToAccountId()), Updates.inc("balance", transferAmount));
+                    collection.updateOne(Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", transferAmount));
                 }
 
                 TransferLog log = new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0));
