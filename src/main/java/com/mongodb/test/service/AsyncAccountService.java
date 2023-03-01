@@ -189,6 +189,8 @@ public class AsyncAccountService {
     }
 
     private void transfer(ClientSession clientSession, Transfer t, boolean hasError, String shard) {
+        logger.info("enter transfer begin");
+
         StopWatch sw = new StopWatch();
         sw.start();
         int transferAmount = t.getToAccountId().size();
@@ -266,6 +268,8 @@ public class AsyncAccountService {
 
             sw.stop();
         }
+
+        logger.info("enter transfer end");
     }
 
     private void transferBatch(ClientSession clientSession, Transfer t, String shard) {
