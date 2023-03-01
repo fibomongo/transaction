@@ -79,7 +79,6 @@ public class AsyncAccountService {
                     }else {
                         transfer(clientSession, transfer, hasError, shard);
                     }
-                    transfer(clientSession, transfer, hasError, shard);
                     return null;
                 }
             };
