@@ -26,9 +26,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.TransactionBody;
 import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.InsertOneModel;
-import com.mongodb.client.model.UpdateOneModel;
+import com.mongodb.client.model.UpdateManyModel;
 import com.mongodb.client.model.Updates;
 import com.mongodb.test.model.Account;
 import com.mongodb.test.model.Transfer;
@@ -75,12 +74,12 @@ public class AsyncAccountService {
                     .build();
             TransactionBody<Void> txnBody = new TransactionBody<Void>() {
                 public Void execute() {
-                    /*if (isBatch) {
+                    if (isBatch) {
                         transferBatch(clientSession, transfer, shard);
                     }else {
                         transfer(clientSession, transfer, hasError, shard);
-                    }*/
-                    transfer(clientSession, transfer, hasError, shard); // jiacy
+                    }
+                    transfer(clientSession, transfer, hasError, shard);
                     return null;
                 }
             };
@@ -262,9 +261,9 @@ public class AsyncAccountService {
                 throw new RuntimeException("Account " + _newBalance.getId() + " have not enough balance, skip transfer");
             } else {
                 if (clientSession != null) {
-                    collection.updateOne(clientSession, Filters.eq("_id", t.getToAccountId()), Updates.inc("balance", transferAmount));
+                    collection.updateMany(clientSession, Filters.eq("_id", t.getToAccountId()), Updates.inc("balance", transferAmount));
                 } else {
-                    collection.updateOne(Filters.eq("_id", t.getToAccountId()), Updates.inc("balance", transferAmount));
+                    collection.updateMany(Filters.eq("_id", t.getToAccountId()), Updates.inc("balance", transferAmount));
                 }
 
                 TransferLog log = new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0));
@@ -299,7 +298,7 @@ public class AsyncAccountService {
                 transferLogCollection = database.getCollection(transferLogCollectionName + "RangedShard", TransferLog.class);
             }
         }
-        List<UpdateOneModel<Account>> list = new ArrayList<>();
+        List<UpdateManyModel<Account>> list = new ArrayList<>();
         List<InsertOneModel<TransferLog>> listTransferLog = new ArrayList<>();
         int transferAmount = t.getToAccountId().size();
         Account a = null;
@@ -312,9 +311,9 @@ public class AsyncAccountService {
             logger.info("Account " + (Objects.nonNull(a) ? a.getId() : "a = null") + " have not enough balance, skip transfer");
             sw.stop();
         } else {
-            list.add(new UpdateOneModel<>(Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -transferAmount)));
+            list.add(new UpdateManyModel<>(Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -transferAmount)));
             for (Integer id2 : t.getToAccountId()) {
-                list.add(new UpdateOneModel<>(Filters.eq("_id", id2), Updates.inc("balance", 1)));
+                list.add(new UpdateManyModel<>(Filters.eq("_id", id2), Updates.inc("balance", 1)));
                 listTransferLog.add(new InsertOneModel<TransferLog>(new TransferLog(1, t.getFromAccountId(), id2)));
             }
             if (!list.isEmpty()) {

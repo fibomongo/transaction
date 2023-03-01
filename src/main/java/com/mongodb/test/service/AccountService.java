@@ -2,7 +2,6 @@ package com.mongodb.test.service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -16,8 +15,6 @@ import org.springframework.util.StopWatch;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Accumulators;
-import com.mongodb.client.model.Aggregates;
 import com.mongodb.test.model.Account;
 import com.mongodb.test.model.Stat;
 import com.mongodb.test.model.Transfer;
@@ -42,6 +39,9 @@ public class AccountService {
 
     @Value("${settings.noOfAccount}")
     private int noOfAccount;
+
+    @Value("${settings.noOfServer}")
+    private int noOfServer;
 
     @Value("${settings.noOfTransfer}")
     private int noOfTransfer;
@@ -193,7 +193,7 @@ public class AccountService {
         int toAccountIdPrefix;
         for (int i = 0; i < noOfTransfer; i++) {
             Transfer t = new Transfer();
-            fromAccountIdPrefix = ((int) Math.floor(Math.random() * 6) + 1) * 100000000;
+            fromAccountIdPrefix = ((int) Math.floor(Math.random() * (noOfServer)) + 1) * 100000000;
             t.setFromAccountId(fromAccountIdPrefix  + ((int) Math.floor(Math.random() * noOfAccount) + 1));
             for (int j = 0; j < transferAmount; j++) {
                 if (t.getToAccountId() == null) {
