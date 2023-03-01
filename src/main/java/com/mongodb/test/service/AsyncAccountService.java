@@ -71,11 +71,14 @@ public class AsyncAccountService {
                     .build();
             TransactionBody<Void> txnBody = new TransactionBody<Void>() {
                 public Void execute() {
-                    if (isBatch) {
-                        transferBatch(clientSession, transfer, shard); 
+
+                    /*if (isBatch) {
+                        transferBatch(clientSession, transfer, shard);
                     }else {
                         transfer(clientSession, transfer, hasError, shard);
-                    }
+                    }*/
+
+                    transfer(clientSession, transfer, hasError, shard); // jiacy
                     return null;
                 }
             };
