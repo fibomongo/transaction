@@ -68,29 +68,30 @@ public class AccountService {
         Stat s = new Stat();
         MongoCollection<Account> collection = database.getCollection(collectionName, Account.class);
         MongoCollection<TransferLog> transferLogCollection = database.getCollection(transferLogCollectionName, TransferLog.class);
-            
-        if(shard!=null){
-            if("hashed".equalsIgnoreCase(shard)){
-                collection = database.getCollection(collectionName+"HashedShard", Account.class);
-                transferLogCollection = database.getCollection(transferLogCollectionName+"HashedShard", TransferLog.class);
-            }                
-            else if("ranged".equalsIgnoreCase(shard)){
-                collection = database.getCollection(collectionName+"RangedShard", Account.class);
-                transferLogCollection = database.getCollection(transferLogCollectionName+"HashedShard", TransferLog.class);
-            }                
+
+        if (shard != null) {
+            if ("hashed".equalsIgnoreCase(shard)) {
+                collection = database.getCollection(collectionName + "HashedShard", Account.class);
+                transferLogCollection = database.getCollection(transferLogCollectionName + "HashedShard", TransferLog.class);
+            } else if ("ranged".equalsIgnoreCase(shard)) {
+                collection = database.getCollection(collectionName + "RangedShard", Account.class);
+                transferLogCollection = database.getCollection(transferLogCollectionName + "HashedShard", TransferLog.class);
+            }
         }
-        if(clear){
+
+        if (clear) {
             logger.info("Deleting accounts");
             collection.deleteMany(new Document());
             logger.info("Finish deleting accounts");
+
             logger.info("Deleting transfer logs");
             transferLogCollection.deleteMany(new Document());
             logger.info("Finish deleting transfer logs");
         }
-        
+
         var accounts = new ArrayList<Account>();
         for (int i = 0; i < this.noOfAccount; i++) {
-            accounts.add(new Account(idPrefix+i + 1, initialBalance));
+            accounts.add(new Account(idPrefix + i + 1, initialBalance));
         }
         var ends = new ArrayList<CompletableFuture<StopWatch>>();
         int pageSize = this.noOfAccount / this.noOfThread;
@@ -129,7 +130,7 @@ public class AccountService {
         Stat s = new Stat();
         StopWatch sw = new StopWatch();
         var ends = new ArrayList<CompletableFuture<Void>>();
-        List<Transfer> transfers = generateTransfer();
+        List<Transfer> transfers = this.generateTransfer();
 
         int pageSize = transfers.size() / this.noOfThread;
         if (pageSize <= 0) {
@@ -189,22 +190,28 @@ public class AccountService {
 
     private List<Transfer> generateTransfer() {
         List<Transfer> transfers = new ArrayList<>();
-        int fromAccountIdPrefix;
-        int toAccountIdPrefix;
         for (int i = 0; i < noOfTransfer; i++) {
             Transfer t = new Transfer();
-            fromAccountIdPrefix = ((int) Math.floor(Math.random() * (noOfServer)) + 1) * 100000000;
-            t.setFromAccountId(fromAccountIdPrefix  + ((int) Math.floor(Math.random() * noOfAccount) + 1));
+            t.setFromAccountId(this.getRandomAccountIdPrefix() + this.getRandomAccountIdSuffix());
+
             for (int j = 0; j < transferAmount; j++) {
                 if (t.getToAccountId() == null) {
                     t.setToAccountId(new ArrayList<>());
                 }
-                toAccountIdPrefix = ((int) Math.floor(Math.random() * 6) + 1) * 100000000;
-                t.getToAccountId().add(toAccountIdPrefix + ((int) Math.floor(Math.random() * noOfAccount) + 1));
+                t.getToAccountId().add(this.getRandomAccountIdPrefix() + this.getRandomAccountIdSuffix());
             }
+
             transfers.add(t);
         }
         return transfers;
+    }
+
+    private int getRandomAccountIdPrefix() {
+        return ((int) Math.floor(Math.random() * (noOfServer)) + 1) * 100000000;
+    }
+
+    private int getRandomAccountIdSuffix() {
+        return ((int) Math.floor(Math.random() * noOfAccount) + 1);
     }
 
 }

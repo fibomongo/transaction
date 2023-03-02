@@ -12,7 +12,10 @@ public class Account {
     @BsonId
     private int id;
     //private ObjectId id;
-    @Getter private double balance;
+
+    @Getter
+    private double balance;
+
     public Account(int id, double balance) {
         this.id = id;
         this.balance = balance;
