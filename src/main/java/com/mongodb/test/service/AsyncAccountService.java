@@ -54,6 +54,12 @@ public class AsyncAccountService {
     @Value("${settings.transferAmount}")
     private Integer transferAmount;
 
+    @Value("${settings.idPrefix}")
+    private int idPrefix;
+
+    @Value("${settings.noOfAccount}")
+    private int noOfAccount;
+
     @Async
     public CompletableFuture<StopWatch> insertMany(MongoCollection<Account> collection, List<Account> accounts)
             throws InterruptedException {
@@ -372,4 +378,245 @@ public class AsyncAccountService {
         //     clientSession.close();
         // }
     }
+
+    private void transferCase1(ClientSession clientSession, Transfer t, boolean hasError, String shard) {
+        try {
+            StopWatch sw = new StopWatch();
+            sw.start();
+
+            MongoCollection<TransferLog> transferLogCollection = database.getCollection(transferLogCollectionName + "RangedShard", TransferLog.class);
+
+            if (clientSession != null) {
+                transferLogCollection.insertOne(clientSession, new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            } else {
+                transferLogCollection.insertOne(new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            }
+
+            sw.stop();
+            logger.info("transferCase1, t={}, spend={} ms", t, sw.getTotalTimeMillis());
+        } catch (Exception e) {
+            logger.error("transferCase1, Exception Occur: t={}, errorMsg={}, errorCause={}, errorStackTrace={}", t, e.getMessage(), e.getCause(), e.getStackTrace(), e);
+            throw e;
+        }
+    }
+
+    private void transferCase2(ClientSession clientSession, Transfer t, boolean hasError, String shard) {
+        try {
+            StopWatch sw = new StopWatch();
+            sw.start();
+
+            MongoCollection<Account> collection = database.getCollection(collectionName + "RangedShard", Account.class);
+
+            if (clientSession != null) {
+                collection.findOneAndUpdate(clientSession, Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -transferAmount));
+                collection.updateOne(clientSession, Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+            } else {
+                collection.findOneAndUpdate(Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -transferAmount));
+                collection.updateOne(Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+            }
+
+            sw.stop();
+            logger.info("transferCase2, t={}, spend={} ms", t, sw.getTotalTimeMillis());
+        } catch (Exception e) {
+            logger.error("transferCase2, Exception Occur: t={} errorMsg={}, errorCause={}, errorStackTrace={}", t, e.getMessage(), e.getCause(), e.getStackTrace(), e);
+            throw e;
+        }
+    }
+
+    private void transferCase3(ClientSession clientSession, Transfer t, boolean hasError, String shard) {
+        List<Integer> toAccountIdList = new ArrayList<>(1);
+        toAccountIdList.add(idPrefix + ((int) Math.floor(Math.random() * noOfAccount) + 1));
+
+        t.setToAccountId(toAccountIdList);
+        t.setFromAccountId(idPrefix + ((int) Math.floor(Math.random() * noOfAccount) + 1));
+        logger.info("transferCase3, reset to single shard, t={}", t);
+
+        try {
+            StopWatch sw = new StopWatch();
+            sw.start();
+
+            MongoCollection<Account> collection = database.getCollection(collectionName + "RangedShard", Account.class);
+
+            if (clientSession != null) {
+                collection.findOneAndUpdate(clientSession, Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -transferAmount));
+                collection.updateOne(clientSession, Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+            } else {
+                collection.findOneAndUpdate(Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -transferAmount));
+                collection.updateOne(Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+            }
+
+            sw.stop();
+            logger.info("transferCase3, t={}, spend={} ms", t, sw.getTotalTimeMillis());
+        } catch (Exception e) {
+            logger.error("transferCase3, Exception Occur: t={} errorMsg={}, errorCause={}, errorStackTrace={}", t, e.getMessage(), e.getCause(), e.getStackTrace(), e);
+            throw e;
+        }
+    }
+
+    private void transferCase4(ClientSession clientSession, Transfer t, boolean hasError, String shard) {
+        try {
+            StopWatch sw = new StopWatch();
+            sw.start();
+
+            MongoCollection<Account> collection = database.getCollection(collectionName + "RangedShard", Account.class);
+            MongoCollection<TransferLog> transferLogCollection = database.getCollection(transferLogCollectionName + "RangedShard", TransferLog.class);
+
+            if (clientSession != null) {
+                collection.findOneAndUpdate(clientSession, Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(clientSession, new TransferLog(1, t.getToAccountId().get(0), t.getFromAccountId()));
+            } else {
+                collection.findOneAndUpdate(Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            }
+
+            sw.stop();
+            logger.info("transferCase4, t={}, spend={} ms", t, sw.getTotalTimeMillis());
+        } catch (Exception e) {
+            logger.error("transferCase4, Exception Occur: t={} errorMsg={}, errorCause={}, errorStackTrace={}", t, e.getMessage(), e.getCause(), e.getStackTrace(), e);
+            throw e;
+        }
+    }
+
+    private void transferCase5(ClientSession clientSession, Transfer t, boolean hasError, String shard) {
+        try {
+            StopWatch sw = new StopWatch();
+            sw.start();
+
+            MongoCollection<Account> collection = database.getCollection(collectionName + "RangedShard", Account.class);
+            MongoCollection<TransferLog> transferLogCollection = database.getCollection(transferLogCollectionName + "RangedShard", TransferLog.class);
+
+            if (clientSession != null) {
+                collection.findOneAndUpdate(clientSession, Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(clientSession, new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            } else {
+                collection.findOneAndUpdate(Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            }
+
+            sw.stop();
+            logger.info("transferCase5, t={}, spend={} ms", t, sw.getTotalTimeMillis());
+        } catch (Exception e) {
+            logger.error("transferCase5, Exception Occur: t={} errorMsg={}, errorCause={}, errorStackTrace={}", t, e.getMessage(), e.getCause(), e.getStackTrace(), e);
+            throw e;
+        }
+    }
+
+    private void transferCase6(ClientSession clientSession, Transfer t, boolean hasError, String shard) {
+        try {
+            StopWatch sw = new StopWatch();
+            sw.start();
+
+            MongoCollection<Account> collection = database.getCollection(collectionName + "RangedShard", Account.class);
+            MongoCollection<TransferLog> transferLogCollection = database.getCollection(transferLogCollectionName + "RangedShard", TransferLog.class);
+
+            if (clientSession != null) {
+                collection.findOneAndUpdate(clientSession, Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -1));
+                collection.updateOne(clientSession, Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(clientSession, new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            } else {
+                collection.findOneAndUpdate(Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -1));
+                collection.updateOne(Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            }
+
+            sw.stop();
+            logger.info("transferCase6, t={}, spend={} ms", t, sw.getTotalTimeMillis());
+        } catch (Exception e) {
+            logger.error("transferCase6, Exception Occur: t={} errorMsg={}, errorCause={}, errorStackTrace={}", t, e.getMessage(), e.getCause(), e.getStackTrace(), e);
+            throw e;
+        }
+    }
+
+    private void transferCase7(ClientSession clientSession, Transfer t, boolean hasError, String shard) {
+        List<Integer> toAccountIdList = new ArrayList<>(1);
+        toAccountIdList.add(idPrefix + ((int) Math.floor(Math.random() * noOfAccount) + 1));
+
+        t.setToAccountId(toAccountIdList);
+        t.setFromAccountId(idPrefix + ((int) Math.floor(Math.random() * noOfAccount) + 1));
+        logger.info("transferCase7, reset to single shard, t={}", t);
+
+        try {
+            StopWatch sw = new StopWatch();
+            sw.start();
+
+            MongoCollection<Account> collection = database.getCollection(collectionName + "RangedShard", Account.class);
+            MongoCollection<TransferLog> transferLogCollection = database.getCollection(transferLogCollectionName + "RangedShard", TransferLog.class);
+
+            if (clientSession != null) {
+                collection.findOneAndUpdate(clientSession, Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -1));
+                collection.updateOne(clientSession, Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(clientSession, new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            } else {
+                collection.findOneAndUpdate(Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -1));
+                collection.updateOne(Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            }
+
+            sw.stop();
+            logger.info("transferCase7, t={}, spend={} ms", t, sw.getTotalTimeMillis());
+        } catch (Exception e) {
+            logger.error("transferCase7, Exception Occur: t={} errorMsg={}, errorCause={}, errorStackTrace={}", t, e.getMessage(), e.getCause(), e.getStackTrace(), e);
+            throw e;
+        }
+    }
+
+    private void transferCase8(ClientSession clientSession, Transfer t, boolean hasError, String shard) {
+        List<Integer> toAccountIdList = new ArrayList<>(1);
+        toAccountIdList.add(idPrefix + ((int) Math.floor(Math.random() * noOfAccount) + 1));
+
+        t.setToAccountId(toAccountIdList);
+        t.setFromAccountId(idPrefix + ((int) Math.floor(Math.random() * noOfAccount) + 1));
+        logger.info("transferCase8, reset to single shard, t={}", t);
+
+        try {
+            StopWatch sw = new StopWatch();
+            sw.start();
+
+            MongoCollection<Account> collection = database.getCollection(collectionName + "RangedShard", Account.class);
+            MongoCollection<TransferLog> transferLogCollection = database.getCollection(transferLogCollectionName + "RangedShard", TransferLog.class);
+
+            if (clientSession != null) {
+                collection.updateOne(clientSession, Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -1));
+                collection.updateOne(clientSession, Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(clientSession, new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            } else {
+                collection.updateOne(Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -1));
+                collection.updateOne(Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            }
+
+            sw.stop();
+            logger.info("transferCase8, t={}, spend={} ms", t, sw.getTotalTimeMillis());
+        } catch (Exception e) {
+            logger.error("transferCase8, Exception Occur: t={} errorMsg={}, errorCause={}, errorStackTrace={}", t, e.getMessage(), e.getCause(), e.getStackTrace(), e);
+            throw e;
+        }
+    }
+
+    private void transferCase10(ClientSession clientSession, Transfer t, boolean hasError, String shard) {
+        try {
+            StopWatch sw = new StopWatch();
+            sw.start();
+
+            MongoCollection<Account> collection = database.getCollection(collectionName + "RangedShard", Account.class);
+            MongoCollection<TransferLog> transferLogCollection = database.getCollection(transferLogCollectionName + "RangedShard", TransferLog.class);
+
+            if (clientSession != null) {
+                collection.updateOne(clientSession, Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -1));
+                collection.updateOne(clientSession, Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(clientSession, new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            } else {
+                collection.updateOne(clientSession, Filters.eq("_id", t.getFromAccountId()), Updates.inc("balance", -1));
+                collection.updateOne(Filters.eq("_id", t.getToAccountId().get(0)), Updates.inc("balance", 1));
+                transferLogCollection.insertOne(new TransferLog(1, t.getFromAccountId(), t.getToAccountId().get(0)));
+            }
+
+            sw.stop();
+            logger.info("transferCase10, t={}, spend={} ms", t, sw.getTotalTimeMillis());
+        } catch (Exception e) {
+            logger.error("transferCase10, Exception Occur: t={} errorMsg={}, errorCause={}, errorStackTrace={}", t, e.getMessage(), e.getCause(), e.getStackTrace(), e);
+            throw e;
+        }
+    }
+
 }
